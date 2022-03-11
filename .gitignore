@@ -21,7 +21,7 @@ _testmain.go
 
 *.exe
 dependencies-stamp
-/snmp_exporter
+/powerpal_exporter
 /.build
 /.release
 /.tarballs
@@ -29,5 +29,3 @@ dependencies-stamp
 *.tar.gz
 /vendor
 
-generator/generator
-generator/mibs
