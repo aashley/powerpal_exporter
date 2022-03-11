@@ -1,4 +1,4 @@
-module aashley/powerpal_exporter
+module github.com/aashley/powerpal_exporter
 
 go 1.17
 
