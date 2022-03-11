@@ -36,7 +36,7 @@ import (
 
 var (
 	webConfig    = webflag.AddFlags(kingpin.CommandLine)
-	addr         = kingpin.Flag("web.listen-address", "The address to listen for HTTP requests.").Default(":9543").String()
+	addr         = kingpin.Flag("web.listen-address", "The address to listen for HTTP requests.").Default(":9915").String()
 	token        = kingpin.Flag("token", "Authorisation token to talk to the PowerPal API.").String()
 	device       = kingpin.Flag("device", "The device ID of the PowerPal you wish to query.").String()
 	powerpalHost = kingpin.Flag("powerpal-host", "The hostname of the Powerpal API to connect to.").Default("readings.powerpal.net").String()
