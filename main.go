@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -43,6 +44,18 @@ var (
 	)
 )
 
+type DeviceStats struct {
+	SerialNumber           string  `json:"serial_number"`
+	TotalMeterReadingCount int     `json:"total_meter_reading_count"`
+	TotalWattHours         int     `json:"total_watt_hours"`
+	TotalCost              float64 `json:"total_cost"`
+	FirstReadingTimestamp  int     `json:"first_reading_timestamp"`
+	LastReadingTimestamp   int     `json:"last_reading_timestamp"`
+	LastReadingWattHours   int     `json:"last_reading_watt_hours"`
+	LastReadingCost        float64 `json:"last_reading_cost"`
+	AvailableDays          int     `json:"available_days"`
+}
+
 func getDeviceData(logger log.Logger) string {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", fmt.Sprintf("https://%s/api/v1/device/%s", *powerpalHost, *device), nil)
@@ -53,8 +66,6 @@ func getDeviceData(logger log.Logger) string {
 	}
 
 	req.Header.Add("Authorization", *token)
-	level.Info(logger).Log("msg", req.Method)
-	level.Info(logger).Log("msg", req.URL)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -100,15 +111,15 @@ func watchPowerpal(registry prometheus.Registry, logger log.Logger) {
 		Name: "powerpal_watt_hours",
 		Help: "The watt hours being consumed at the last reading",
 	})
-	totalCost := promauto.NewCounter(prometheus.CounterOpts{
+	totalCost := promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "powerpal_cost_total",
 		Help: "The total cost recorded by this device",
 	})
-	totalWattHours := promauto.NewCounter(prometheus.CounterOpts{
+	totalWattHours := promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "powerpal_watt_hours_total",
 		Help: "The total watt hours recorded by this device",
 	})
-	totalReadings := promauto.NewCounter(prometheus.CounterOpts{
+	totalReadings := promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "powerpal_reading_count",
 		Help: "The total number of readings recorded by this device",
 	})
@@ -121,12 +132,27 @@ func watchPowerpal(registry prometheus.Registry, logger log.Logger) {
 	registry.MustRegister(totalCost)
 	registry.MustRegister(totalWattHours)
 	registry.MustRegister(totalReadings)
+	registry.MustRegister(apiDuration)
+	registry.MustRegister(apiRequestErrors)
 
 	go func() {
 		for {
 			apiJsonData := getDeviceData(logger)
 			if apiJsonData != "unknown" {
-				fmt.Println(apiJsonData)
+				var powerpalMetrics DeviceStats
+				if err := json.Unmarshal([]byte(apiJsonData), &powerpalMetrics); err != nil {
+					level.Error(logger).Log("msg", "Error parsing API response", "err", err)
+					apiRequestErrors.Inc()
+				} else {
+					availableDays.Set(float64(powerpalMetrics.AvailableDays))
+					firstReading.Set(float64(powerpalMetrics.FirstReadingTimestamp))
+					lastReading.Set(float64(powerpalMetrics.LastReadingTimestamp))
+					cost.Set(float64(powerpalMetrics.LastReadingCost))
+					wattHours.Set(float64(powerpalMetrics.LastReadingWattHours))
+					totalCost.Set(float64(powerpalMetrics.TotalCost))
+					totalWattHours.Set(float64(powerpalMetrics.TotalWattHours))
+					totalReadings.Set(float64(powerpalMetrics.TotalMeterReadingCount))
+				}
 			}
 			time.Sleep(10 * time.Second)
 		}
@@ -143,17 +169,16 @@ func main() {
 	level.Info(logger).Log("msg", "Starting powerpal_exporter", "version", version.Info())
 	level.Info(logger).Log("build_context", version.BuildContext())
 
-	prometheus.MustRegister(version.NewCollector("powerpal_exporter"))
-
 	apiDuration.WithLabelValues("api_device")
-	apiDuration.WithLabelValues("api_meter_reading")
+	//apiDuration.WithLabelValues("api_meter_reading")
 
 	r := prometheus.NewRegistry()
+	r.MustRegister(version.NewCollector("powerpal_exporter"))
 	watchPowerpal(*r, logger)
 	handler := promhttp.HandlerFor(r, promhttp.HandlerOpts{})
 
-	http.Handle("/metrics", handler)
-	http.Handle("/exporter_metrics", promhttp.Handler())
+	http.Handle("/powerpal", handler)
+	http.Handle("/metrics", promhttp.Handler())
 	level.Info(logger).Log("msg", "Listening on address", "address", *addr)
 	srv := &http.Server{Addr: *addr}
 	if err := web.ListenAndServe(srv, *webConfig, logger); err != nil {
