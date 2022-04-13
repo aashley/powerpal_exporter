@@ -40,6 +40,7 @@ var (
 	token        = kingpin.Flag("token", "Authorisation token to talk to the PowerPal API.").String()
 	device       = kingpin.Flag("device", "The device ID of the PowerPal you wish to query.").String()
 	powerpalHost = kingpin.Flag("powerpal-host", "The hostname of the Powerpal API to connect to.").Default("readings.powerpal.net").String()
+	refreshTime  = kingpin.Flag("refresh", "Frequency of refresh from Powerpal API in seconds").Default("30").Int()
 
 	// Metrics about the exporter itself
 	apiDuration = promauto.NewSummaryVec(
@@ -167,7 +168,7 @@ func watchPowerpal(registry prometheus.Registry, logger log.Logger) {
 					totalReadings.Set(float64(powerpalMetrics.TotalMeterReadingCount))
 				}
 			}
-			time.Sleep(10 * time.Second)
+			time.Sleep(time.Duration(*refreshTime) * time.Second)
 		}
 	}()
 }
