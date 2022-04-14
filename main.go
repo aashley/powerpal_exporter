@@ -81,6 +81,8 @@ func getDeviceData(logger log.Logger) string {
 
 	req.Header.Add("Authorization", *token)
 
+	start := time.Now()
+
 	resp, err := client.Do(req)
 	if err != nil {
 		level.Error(logger).Log("msg", "Error requesting device information from API", "err", err)
@@ -88,6 +90,9 @@ func getDeviceData(logger log.Logger) string {
 		return "unknown"
 	}
 	defer resp.Body.Close()
+
+	elapsed := time.Since(start)
+	apiDuration.WithLabelValues("api_device").Observe(float64(elapsed))
 
 	if resp.StatusCode == 200 {
 		body, err := ioutil.ReadAll(resp.Body)
@@ -190,9 +195,6 @@ func main() {
 
 	level.Info(logger).Log("msg", "Starting powerpal_exporter", "version", version.Info())
 	level.Info(logger).Log("build_context", version.BuildContext())
-
-	apiDuration.WithLabelValues("api_device")
-	//apiDuration.WithLabelValues("api_meter_reading")
 
 	r := prometheus.NewRegistry()
 	r.MustRegister(version.NewCollector("powerpal_exporter"))
