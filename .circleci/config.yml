@@ -48,7 +48,6 @@ workflows:
           branches:
             only: main
         docker_hub_organization: adamashley
-        image: powerpal_exporter
     - prometheus/publish_release:
         requires:
         - build
@@ -58,4 +57,3 @@ workflows:
           branches:
             ignore: /.*/
         docker_hub_organization: adamashley
-        image: powerpal_exporter
