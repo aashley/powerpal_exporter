@@ -32,10 +32,10 @@ workflows:
   version: 2
   snmp_exporter:
     jobs:
-    - test:
-        filters:
-          tags:
-            only: /.*/
+#    - test:
+#        filters:
+#          tags:
+#            only: /.*/
     - prometheus/build:
         name: build
         filters:
