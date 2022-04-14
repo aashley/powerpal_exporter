@@ -48,7 +48,7 @@ workflows:
           branches:
             only: main
         docker_hub_organization: adamashley
-        quay_io_organization:
+        quay_io_organization: false
         context:
           - Docker
     - prometheus/publish_release:
@@ -60,6 +60,6 @@ workflows:
           branches:
             ignore: /.*/
         docker_hub_organization: adamashley
-        quay_io_organization:
+        quay_io_organization: false
         context:
           - Docker
