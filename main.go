@@ -36,11 +36,11 @@ import (
 
 var (
 	webConfig    = webflag.AddFlags(kingpin.CommandLine)
-	addr         = kingpin.Flag("web.listen-address", "The address to listen for HTTP requests.").Default(":9915").String()
-	token        = kingpin.Flag("token", "Authorisation token to talk to the PowerPal API.").String()
-	device       = kingpin.Flag("device", "The device ID of the PowerPal you wish to query.").String()
-	powerpalHost = kingpin.Flag("powerpal-host", "The hostname of the Powerpal API to connect to.").Default("readings.powerpal.net").String()
-	refreshTime  = kingpin.Flag("refresh", "Frequency of refresh from Powerpal API in seconds").Default("30").Int()
+	addr         = kingpin.Flag("web.listen-address", "The address to listen for HTTP requests.").Default(":9915").OverrideDefaultFromEnvar("POWERPAL_LISTEN_ADDR").String()
+	token        = kingpin.Flag("token", "Authorisation token to talk to the PowerPal API. Env: POWERPAL_TOKEN").Default("").OverrideDefaultFromEnvar("POWERPAL_TOKEN").String()
+	device       = kingpin.Flag("device", "The device ID of the PowerPal you wish to query. Env: POWERPAL_DEVICE").Default("").OverrideDefaultFromEnvar("POWERPAL_DEVICE").String()
+	powerpalHost = kingpin.Flag("powerpal-host", "The hostname of the Powerpal API to connect to.").Default("readings.powerpal.net").OverrideDefaultFromEnvar("POWERPAL_HOST").String()
+	refreshTime  = kingpin.Flag("refresh", "Frequency of refresh from Powerpal API in seconds. Env: POWERPAL_REFRESH").Default("30").OverrideDefaultFromEnvar("POWERPAL_REFRESH").Int()
 
 	// Metrics about the exporter itself
 	apiDuration = promauto.NewSummaryVec(
@@ -179,6 +179,14 @@ func main() {
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 	logger := promlog.New(promlogConfig)
+
+	if "" == *token {
+		kingpin.FatalUsage("Powerpal token must be supplied.")
+	}
+
+	if "" == *device {
+		kingpin.FatalUsage("Powerpal device identifier must be supplied.")
+	}
 
 	level.Info(logger).Log("msg", "Starting powerpal_exporter", "version", version.Info())
 	level.Info(logger).Log("build_context", version.BuildContext())
