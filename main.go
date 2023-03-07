@@ -16,7 +16,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -35,7 +35,7 @@ import (
 )
 
 var (
-	webConfig    = webflag.AddFlags(kingpin.CommandLine)
+	webConfig    = webflag.AddFlags(kingpin.CommandLine, ":9915")
 	addr         = kingpin.Flag("web.listen-address", "The address to listen for HTTP requests.").Default(":9915").OverrideDefaultFromEnvar("POWERPAL_LISTEN_ADDR").String()
 	token        = kingpin.Flag("token", "Authorisation token to talk to the PowerPal API. Env: POWERPAL_TOKEN").Default("").OverrideDefaultFromEnvar("POWERPAL_TOKEN").String()
 	device       = kingpin.Flag("device", "The device ID of the PowerPal you wish to query. Env: POWERPAL_DEVICE").Default("").OverrideDefaultFromEnvar("POWERPAL_DEVICE").String()
@@ -95,7 +95,7 @@ func getDeviceData(logger log.Logger) string {
 	apiDuration.WithLabelValues("api_device").Observe(float64(elapsed))
 
 	if resp.StatusCode == 200 {
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			level.Error(logger).Log("msg", "Error reading API response", "err", err)
 			apiRequestErrors.Inc()
@@ -205,7 +205,7 @@ func main() {
 	http.Handle("/metrics", promhttp.Handler())
 	level.Info(logger).Log("msg", "Listening on address", "address", *addr)
 	srv := &http.Server{Addr: *addr}
-	if err := web.ListenAndServe(srv, *webConfig, logger); err != nil {
+	if err := web.ListenAndServe(srv, webConfig, logger); err != nil {
 		level.Error(logger).Log("msg", "Error starting HTTP Server", "err", err)
 		os.Exit(1)
 	}
