@@ -124,11 +124,11 @@ func watchPowerpal(registry prometheus.Registry, logger log.Logger) {
 	})
 	cost := promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "powerpal_cost",
-		Help: "The cost at the last reading",
+		Help: "The cost at the last reading per second",
 	})
 	wattHours := promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "powerpal_watt_hours",
-		Help: "The watt hours being consumed at the last reading",
+		Help: "The watt hours being consumed at the last reading per second",
 	})
 	totalCost := promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "powerpal_cost_total",
