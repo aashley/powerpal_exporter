@@ -1,3 +1,8 @@
+## 0.3.0 / 2023-03-07
+
+* Update dependancies for security fixes
+* Updates to build with Go 1.20
+
 ## 0.2.1 / 2022-04-15
 
 * Packaging and build system changes
